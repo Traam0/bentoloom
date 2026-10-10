@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Dev tooling (vitest 5, attw) needs Node 22+, so the full suite runs there.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run coverage
+      - run: npm run build
+      - run: npm run check:package
+      - name: Upload build for smoke tests
+        if: matrix.node == 22
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-build
+          path: |
+            dist
+            package.json
+
+  # The published package supports Node >= 18, so prove it on the built output.
+  smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24]
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-build
+      - name: ESM import
+        run: |
+          node --input-type=module -e "
+            import { generateLayout } from './dist/index.js';
+            const l = generateLayout(['a', 'b', 'c', 'd']);
+            if (l.chunks.length !== 1 || l.chunks[0].tiles.length !== 5) throw new Error('unexpected layout');
+            console.log('esm ok on', process.version);
+          "
+      - name: CJS require
+        run: |
+          node -e "
+            const { generateLayout } = require('./dist/index.cjs');
+            const l = generateLayout(['a', 'b', 'c', 'd']);
+            if (l.chunks.length !== 1 || l.chunks[0].tiles.length !== 5) throw new Error('unexpected layout');
+            console.log('cjs ok on', process.version);
+          "

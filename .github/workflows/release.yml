@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write   # create the GitHub release
+  id-token: write   # npm provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      - name: Tag must match package.json version
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$VERSION" != "$PKG" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          case "$VERSION" in
+            *-*) echo "prerelease=true"  >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - run: npm run typecheck
+      - run: npm run coverage
+      - run: npm run build
+      - run: npm run check:package
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          [ -f CHANGELOG.md ] || { echo "No CHANGELOG.md, will auto-generate notes"; exit 0; }
+          # Section starts at a "## <version>" or "## [<version>]" heading (optional date after it)
+          # and ends at the next "## " heading. Literal match, so 1.0.0 never matches 1.0.0-beta.1.
+          awk -v v="$VERSION" '
+            /^## / {
+              if (found) exit
+              h = $0; sub(/^## +\[?/, "", h)
+              if (index(h, v) == 1) {
+                c = substr(h, length(v) + 1, 1)
+                if (c == "" || c == " " || c == "]" || c == "(") found = 1
+              }
+              next
+            }
+            found
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if grep -q '[^[:space:]]' RELEASE_NOTES.md; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No section for $VERSION in CHANGELOG.md, will auto-generate notes"
+          fi
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
+        run: |
+          if [ "$PRERELEASE" = "true" ]; then TAG_ARGS="--tag next"; else TAG_ARGS=""; fi
+          npm publish --provenance --access public $TAG_ARGS
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
+          NOTES_FOUND: ${{ steps.notes.outputs.found }}
+        run: |
+          ARGS=(--title "$GITHUB_REF_NAME" --verify-tag)
+          [ "$PRERELEASE" = "true" ] && ARGS+=(--prerelease)
+          if [ "$NOTES_FOUND" = "true" ]; then
+            ARGS+=(--notes-file RELEASE_NOTES.md)
+          else
+            ARGS+=(--generate-notes)
+          fi
+          gh release create "$GITHUB_REF_NAME" "${ARGS[@]}"
