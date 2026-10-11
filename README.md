@@ -29,7 +29,7 @@ Uniform grids look generic, and hand-placed bento grids don't scale past a dozen
 - **Gapless.** Every cell is covered exactly once, with no holes or overlaps. This is enforced by a property test, not by hope.
 - **Deterministic.** Same input, same salt and same version give the same layout. It is SSR and hydration safe, and `salt` rerolls everything.
 - **Two breakpoints.** Every tile has a mobile and a desktop placement, solved independently.
-- **Personality.** Ten irregular shapes (arches, petals, pills, circles, and more) plus filler tiles like ratings, pulse lines and paws.
+- **Personality.** Ten irregular `border-radius` shapes (arches, petals, pills, circles, and more), opt-in **`clip-path`** shapes (hexagons, diamonds, your own `polygon()`/`path()`), plus filler tiles like ratings, pulse lines and paws.
 - **Yours to configure.** Every default can be overridden, and you can extend the shape pool with your own.
 - **Tiny and boring.** Zero dependencies, about 3.3 kB min+gzip, ESM and CJS, full types, `sideEffects: false`.
 - **Framework-agnostic.** The engine returns plain data and CSS values. Use it with React, Vue, Svelte, or plain HTML.
@@ -61,8 +61,8 @@ const layout = generateLayout(images, { config: { salt: "my-site" } });
   kind: "item",                 // or "filler"
   item: { file, alt, caption }, // your original object, untouched
   index: 0,                     // reading order (for lightboxes)
-  mobile:  { area: "1 / 1 / 4 / 4",  radius: "9999px", shape: "circle", x, y, w, h },
-  desktop: { area: "1 / 1 / 5 / 5",  radius: "6rem 1rem 1rem 1rem", shape: "cornTL", x, y, w, h },
+  mobile:  { area: "1 / 1 / 4 / 4",  radius: "9999px", clipPath: "none", shape: "circle", x, y, w, h },
+  desktop: { area: "1 / 1 / 5 / 5",  radius: "6rem 1rem 1rem 1rem", clipPath: "none", shape: "cornTL", x, y, w, h },
 }
 ```
 
@@ -71,7 +71,7 @@ const layout = generateLayout(images, { config: { salt: "my-site" } });
 ```tsx
 import { generateLayout, tileCssVars, chunkCssVars } from "bentoloom";
 
-const layout = generateLayout(IMAGES, { config: { salt: "petcare" } });
+const layout = generateLayout(IMAGES, { config: { salt: "some-salt-or-seed" } });
 
 export function Gallery() {
   return (
@@ -87,7 +87,7 @@ export function Gallery() {
             <div
               key={t.kind === "item" ? t.index : `${chunk.id}-${t.filler}`}
               style={tileCssVars(t)}
-              className="[grid-area:var(--gm)] [border-radius:var(--brm)] lg:[grid-area:var(--gd)] lg:[border-radius:var(--brd)] overflow-hidden"
+              className="[grid-area:var(--gm)] [border-radius:var(--brm)] [clip-path:var(--cpm)] lg:[grid-area:var(--gd)] lg:[border-radius:var(--brd)] lg:[clip-path:var(--cpd)] overflow-hidden"
             >
               {t.kind === "item" ? <img src={`/${t.item.file}`} alt={t.item.alt} className="size-full object-cover" /> : <Filler kind={t.filler} />}
             </div>
@@ -111,7 +111,7 @@ The grid uses square cells (`--u`), so the wrapper must be a size container:
   --u: calc((100cqw - 2.25rem) / 4);                 /* (width - gaps) / cols */
   grid-template-rows: repeat(var(--rm), var(--u));
 }
-.bento > * { grid-area: var(--gm); border-radius: var(--brm); overflow: hidden; }
+.bento > * { grid-area: var(--gm); border-radius: var(--brm); clip-path: var(--cpm); overflow: hidden; }
 
 @media (min-width: 1024px) {
   .bento {
@@ -120,7 +120,7 @@ The grid uses square cells (`--u`), so the wrapper must be a size container:
     --u: calc((100cqw - 11rem) / 12);
     grid-template-rows: repeat(var(--rd), var(--u));
   }
-  .bento > * { grid-area: var(--gd); border-radius: var(--brd); }
+  .bento > * { grid-area: var(--gd); border-radius: var(--brd); clip-path: var(--cpd); }
 }
 ```
 
@@ -166,6 +166,37 @@ export const gallery = createLayoutGenerator({
 });
 ```
 
+### Clip-path shapes
+
+A shape can carry a CSS `clip-path` instead of (or on top of) a `border-radius`, which unlocks hexagons, diamonds, arrows and anything `polygon()`, `circle()`, `inset()` or `path()` can draw.
+
+<img src="./assets/clip-shapes.svg" alt="Built-in clip-path presets: hexagon, diamond, octagon, arrow, bevel" width="100%">
+
+```ts
+import { createLayoutGenerator, SHAPE_PRESETS } from "bentoloom";
+
+export const gallery = createLayoutGenerator({
+  shapes: {
+    add: {
+      hexagon: SHAPE_PRESETS.hexagon,                       // ready-made, opt-in
+      zigzag: {                                             // your own
+        clipPath: "polygon(0 0, 100% 0, 100% 85%, 75% 100%, 50% 85%, 25% 100%, 0 85%)",
+        aspects: ["square", "wide"],
+      },
+      stamp: { radius: "1rem", clipPath: "inset(0 round 1rem)" }, // both are allowed
+    },
+  },
+});
+```
+
+Presets: `hexagon`, `diamond`, `octagon`, `arrow`, `bevel`. They are **not** in the default pools, so existing layouts do not change until you add them. Percentage-based clips scale with the tile, so use `aspects` to keep a shape on tiles where it looks right (a diamond wants a square, an arrow wants a wide tile).
+
+Each placement gets `clipPath` (`"none"` when the shape has none), and `radius` is `"0"` for clip-only shapes, so the CSS variables `--cpm` / `--cpd` are always valid values. Things to know:
+
+- `clip-path` also clips focus rings, outlines and `box-shadow`. Put a shadow on a wrapper with `filter: drop-shadow()`, or keep clickable tiles on radius shapes.
+- Hover zoom on the image inside still works; the clip is applied to the tile.
+- `shapes.clips` is the raw name → clip-path map (merged like `radii`), and `shapes.add` is the shortcut that fills `radii`, `clips` and the pools in one go.
+
 Need full control? Replace pools outright: `shapes: { radii: { only: "12px" }, pools: { square: ["only"], tall: ["only"], wide: ["only"] } }`.
 
 ## Configuration
@@ -177,7 +208,7 @@ import { createLayoutGenerator, generateLayout, DEFAULT_CONFIG } from "bentoloom
 
 // 1. project-wide defaults, set once
 export const gallery = createLayoutGenerator({
-  salt: "petcare",
+  salt: "some-salt-or-seed",
   chunkSize: 10,
   heroChance: 0.25,
   fillers: ["stat", "paw"],                       // [] disables fillers
@@ -208,6 +239,7 @@ Invalid config throws a `LayoutConfigError` listing every problem at once.
 | `grid.desktop` | `cols 12 · cellsPerWeight 10 · minSide 2 · minArea 6` | Desktop grid (+ `fallbackPerRow 3`, `fallbackRowHeight 4`) |
 | `grid.mobile` | `cols 4 · cellsPerWeight 6 · minSide 2 · minArea 4` | Mobile grid (+ `fallbackPerRow 2`, `fallbackRowHeight 3`) |
 | `shapes.radii` | 10 built-ins | Shape name → CSS `border-radius` |
+| `shapes.clips` | `{}` | Shape name → CSS `clip-path` (see `SHAPE_PRESETS`) |
 | `shapes.pools` | per aspect | Names allowed for `square`, `tall`, `wide` |
 
 **Merge rules:** objects merge deeply, arrays and primitives are replaced, `undefined` is ignored, and `shapes.add` / `shapes.remove` accumulate across layers. Larger `cellsPerWeight` means bigger tiles and a taller page.
@@ -220,11 +252,12 @@ Invalid config throws a `LayoutConfigError` listing every problem at once.
 | `createLayoutGenerator(defaults?)` | Returns `{ config, generate(items, options?) }` with your defaults baked in |
 | `resolveConfig(patch?, base?)` | Layer, validate and return a fresh `LayoutConfig` |
 | `DEFAULT_CONFIG` | The frozen built-in defaults |
-| `tileCssVars(tile)` | `{ --gm, --gd, --brm, --brd }` for a tile |
+| `tileCssVars(tile)` | `{ --gm, --gd, --brm, --brd, --cpm, --cpd }` for a tile (grid-area, radius, clip-path per breakpoint) |
+| `SHAPE_PRESETS` | Frozen, opt-in clip-path shapes: `hexagon`, `diamond`, `octagon`, `arrow`, `bevel` |
 | `chunkCssVars(chunk)` | `{ --rm, --rd }` (row counts) for a chunk |
 | `LayoutConfigError` | Thrown for invalid config, with `.problems: string[]` |
 
-Types: `Layout`, `Chunk`, `Tile`, `Placement`, `LayoutConfig`, `UserConfig`, `GridConfig`, `ShapesConfig`, `ShapesInput`, `ShapeDef`, `GenerateOptions`, `Aspect`.
+Types: `Layout`, `Chunk`, `Tile`, `Placement`, `LayoutConfig`, `UserConfig`, `GridConfig`, `ShapesConfig`, `ShapesInput`, `ShapeDef`, `ShapePresetName`, `GenerateOptions`, `Aspect`.
 
 ### What can I pass as items?
 
@@ -253,12 +286,14 @@ Live stats appear once the package is published:
 
 ```bash
 npm install
-npm test               # 66 tests
+npm test               # 99 tests
 npm run coverage       # enforced thresholds
 npm run build          # ESM + CJS + .d.ts
 npm run check:package  # publint + are-the-types-wrong
 npm run docs:assets    # regenerate the README illustrations from the real build
 ```
+
+The dev tooling (vitest 5) needs Node 22.12+; the published package itself supports Node 18+.
 
 Releasing: bump the version and `CHANGELOG.md`, tag `vX.Y.Z`, push the tag. The release workflow publishes to npm and uses the matching changelog section as the release notes.
 

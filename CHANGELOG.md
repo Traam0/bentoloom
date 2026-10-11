@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 A change to the layout produced for a given input, config and version is treated as a **breaking change**.
 
+## [1.0.0] - 2026-10-11
+
+First stable release. Builds on the 1.0.0-rc release candidate; layouts for the same items, config and salt are identical to 1.0.0-rc (the golden snapshot is unchanged).
+
+### Added
+- **Clip-path shapes.** Shapes can carry a CSS `clip-path` (`polygon()`, `circle()`, `inset()`, `path()`...) instead of, or in addition to, a `border-radius`. Register them with the new `shapes.clips` map, or with `shapes.add: { name: { clipPath } }`, which also appends the shape to the aspect pools.
+- **`SHAPE_PRESETS`.** Opt-in clip-path presets: `hexagon`, `diamond`, `octagon`, `arrow` and `bevel`. They are percentage-based, ship with sensible default `aspects`, and are not in the default pools, so existing layouts are unaffected until you add them.
+- **Clip-path validation.** Clip values must be a CSS clip-path function (`polygon(`, `circle(`, `ellipse(`, `inset(`, `path(`, `rect(`, `xywh(`, `shape(`, `url(`); a shape added with neither `radius` nor `clipPath` is rejected with a `LayoutConfigError`.
+- **Node 18-24 smoke test in CI.** The built package is imported (ESM) and required (CJS) on Node 18, 20, 22 and 24.
+- **Docs.** A clip-path section in the README, a `clip-shapes.svg` illustration generated from the real presets, and updated CSS recipes using `clip-path: var(--cpm)` / `var(--cpd)`.
+
+### Changed
+- **Placements** now include `clipPath` (`"none"` when the shape has no clip-path). For clip-only shapes `radius` is `"0"`, so both values are always valid CSS.
+- **`tileCssVars`** returns two extra variables, `--cpm` and `--cpd` (clip-path for mobile and desktop).
+- **Types.** `ShapeDef` now requires a `radius`, a `clipPath`, or both; `ShapesConfig` gains `clips` (default `{}`); `ShapesInput` gains `clips`; `Placement` gains `clipPath`. New exports: `SHAPE_PRESETS` and the `ShapePresetName` type.
+- **Tests.** 99 tests (up from 66): 33 new tests cover clip-path config, validation, layouts and presets.
+- **CI.** The full test suite now runs on Node 22 and 24, because the test runner (vitest 5) requires Node 22.12+. The published package still supports Node 18+. The release workflow also runs on Node 22.
+
 ## [1.0.0-rc] - 2026-10-10
 
 First stable release.

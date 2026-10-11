@@ -133,7 +133,7 @@ describe("fillers", () => {
 describe("geometry", () => {
   it("is gapless and overlap-free for 0..60 items across salts", () => {
     for (let n = 0; n <= 60; n++)
-      for (const salt of ["", "x", "petcare"]) {
+      for (const salt of ["", "x", "some-salt-or-seed"]) {
         const cfg = resolveConfig({ salt });
         expectGapless(generateLayout(makeItems(n), { config: { salt } }), cfg);
       }

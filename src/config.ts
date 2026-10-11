@@ -44,6 +44,7 @@ export const DEFAULT_CONFIG: Readonly<LayoutConfig> = deepFreeze<LayoutConfig>({
       cornBR: "1rem 1rem 6rem 1rem",
       soft: "2.5rem",
     },
+    clips: {},
     pools: {
       square: ["circle", "petalA", "petalB", "soft", "cornTL", "cornBR"],
       tall: ["arch", "tab", "pill", "petalA", "petalB", "cornBR", "cornTL"],
@@ -77,6 +78,9 @@ function merge(base: Plain, patch: Plain): Plain {
   }
   return out;
 }
+
+const CLIP_RE = /^(polygon|circle|ellipse|inset|path|rect|xywh|shape|url)\(/i;
+const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
 
 const isInt = (n: unknown, min: number): boolean =>
   typeof n === "number" && Number.isInteger(n) && n >= min;
@@ -114,11 +118,16 @@ function validate(c: LayoutConfig): void {
     if (typeof radius !== "string" || !radius.trim())
       p.push(`shapes.radii.${name} must be a non-empty CSS border-radius string`);
   }
+  for (const [name, clip] of Object.entries(c.shapes.clips)) {
+     if (typeof clip !== "string" || !CLIP_RE.test(clip.trim()))
+       p.push(`shapes.clips.${name} must be a CSS clip-path value such as polygon(...), circle(...), inset(...) or path(...)`);
+  }
   for (const a of ASPECTS) {
     const pool = c.shapes.pools[a];
     if (!pool.length) p.push(`shapes.pools.${a} must not be empty`);
     for (const name of pool)
-      if (!(name in c.shapes.radii)) p.push(`shapes.pools.${a} references unknown shape "${name}"`);
+      if(!has(c.shapes.radii, name) && !has(c.shapes.clips, name))
+        p.push(`shapes.pools.${a} references unknown shape "${name}"`);
   }
   if (p.length) throw new LayoutConfigError(p);
 }
@@ -135,18 +144,22 @@ export function resolveConfig(
   const cfg = merge(clone(base) as unknown as Plain, rest as Plain) as unknown as LayoutConfig;
 
   const radii = { ...cfg.shapes.radii, ...(sp?.radii ?? {}) };
+  const clips = { ...cfg.shapes.clips, ...(sp?.clips ?? {}) };
   const pools = {} as Record<Aspect, string[]>;
   for (const a of ASPECTS) pools[a] = [...(sp?.pools?.[a] ?? cfg.shapes.pools[a])];
+ 
+   for (const [name, def] of Object.entries(sp?.add ?? {})) {
+     if (def.radius === undefined && def.clipPath === undefined)
+       throw new LayoutConfigError([`shapes.add.${name} needs a radius, a clipPath, or both`]);
+     if (def.radius !== undefined) radii[name] = def.radius;
+     if (def.clipPath !== undefined) clips[name] = def.clipPath;
+     for (const a of def.aspects ?? ASPECTS) if (!pools[a].includes(name)) pools[a].push(name);
+   }
+   if (sp?.remove?.length) {
+     for (const a of ASPECTS) pools[a] = pools[a].filter((n) => !sp.remove!.includes(n));
+   }
 
-  for (const [name, def] of Object.entries(sp?.add ?? {})) {
-    radii[name] = def.radius;
-    for (const a of def.aspects ?? ASPECTS) if (!pools[a].includes(name)) pools[a].push(name);
-  }
-  if (sp?.remove?.length) {
-    for (const a of ASPECTS) pools[a] = pools[a].filter((n) => !sp.remove!.includes(n));
-  }
-
-  cfg.shapes = { radii, pools };
+  cfg.shapes = { radii, clips, pools };
   validate(cfg);
   return cfg;
 }

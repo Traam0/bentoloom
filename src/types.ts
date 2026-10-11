@@ -26,6 +26,8 @@ export interface GridConfig {
 export interface ShapesConfig {
   /** Shape name -> CSS `border-radius` value. */
   radii: Record<string, string>;
+  /** Shape name -> CSS `clip-path` value (`polygon()`, `circle()`, `inset()`, `path()`...). */
+  clips: Record<string, string>;
   /** Which shape names may be used for each tile aspect. */
   pools: Record<Aspect, string[]>;
 }
@@ -51,15 +53,21 @@ export interface LayoutConfig {
   salt: string;
 }
 
-export interface ShapeDef {
-  radius: string;
+/** A shape needs a `radius`, a `clipPath`, or both. */
+export type ShapeDef = (
+  | { radius: string; clipPath?: string }
+  | { radius?: string; clipPath: string }
+) & {
   /** Aspects this shape may be used for. Defaults to all three. */
   aspects?: Aspect[];
-}
+};
+
 
 export interface ShapesInput {
   /** Merged into the existing radii (add or override names). */
   radii?: Record<string, string>;
+  /** Merged into the existing clip-paths (add or override names). */
+  clips?: Record<string, string>;
   /** Replaces the pool for each aspect given. */
   pools?: Partial<Record<Aspect, string[]>>;
   /** Convenience: register a shape and append it to pools in one go. */
@@ -84,6 +92,8 @@ export interface Placement {
   area: string;
   /** CSS `border-radius` value. */
   radius: string;
+  /** CSS `clip-path` value ("none" when the shape only has a radius). */
+  clipPath: string;
   /** Name of the chosen shape. */
   shape: string;
   x: number;

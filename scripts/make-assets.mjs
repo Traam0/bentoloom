@@ -1,11 +1,14 @@
+// Regenerates the README illustrations from the real library build.
+// Usage: npm run docs:assets   (builds first, then writes ./assets/*.svg)
 import { mkdirSync, writeFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
-import { DEFAULT_CONFIG, generateLayout } from "../dist/index.js";
+import { DEFAULT_CONFIG, SHAPE_PRESETS, generateLayout } from "../dist/index.js";
 
 const OUT = new URL("../assets/", import.meta.url);
 mkdirSync(OUT, { recursive: true });
 const write = (name, svg) => writeFileSync(new URL(name, OUT), svg);
 
+/* ───────── design tokens ───────── */
 const FONT = `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
 const SERIF = `ui-serif, Georgia, "Times New Roman", serif`;
 const MONO = `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
@@ -244,6 +247,29 @@ function drawChunk(chunk, bp, grid, { u, gap, rem }) {
     body += `<rect x="${x}" y="${y}" width="${cw}" height="${chh}" rx="18" fill="#f3eee4" stroke="${LINE}"/>${text(x + 24, y + 42, "Aspect pools", { size: 15, weight: 700 })}${[["square", "w = h"], ["tall", "h > w"], ["wide", "w > h"]].map(([a, d], k) => `${aspectIcons(x + 36, y + 76 + k * 30, [a], ACCENT)}${text(x + 64, y + 81 + k * 30, a, { size: 14, weight: 600, family: MONO })}${text(x + 140, y + 81 + k * 30, d, { size: 13, fill: MUTED })}`).join("")}`;
   }
   write("shapes.svg", svg(W, H, "The ten built-in shapes plus your own via shapes.add", body));
+}
+
+
+/* ═════════════ 4b. clip-path presets ═════════════ */
+{
+  const polygon = (clip, x, y, w, h) => {
+    const inner = clip.slice(clip.indexOf("(") + 1, clip.lastIndexOf(")"));
+    const pt = (v, size) => (v.endsWith("%") ? (parseFloat(v) / 100) * size : parseFloat(v));
+    return inner.split(",").map((pair, i) => {
+      const [px, py] = pair.trim().split(/\s+/);
+      return `${i ? "L" : "M"}${r2(x + pt(px, w))} ${r2(y + pt(py, h))}`;
+    }).join("") + "Z";
+  };
+  const size = { hexagon: [108, 88], diamond: [88, 88], octagon: [88, 88], arrow: [112, 70], bevel: [92, 92] };
+  const names = Object.keys(SHAPE_PRESETS);
+  const cw = 204, chh = 168, gx = 18, W = names.length * cw + (names.length + 1) * gx, H = chh + gx * 2 + 52;
+  let body = "";
+  names.forEach((n, i) => {
+    const x = gx + i * (cw + gx), y = gx, [w, h] = size[n];
+    body += `<rect x="${x}" y="${y}" width="${cw}" height="${chh}" rx="18" fill="#fffdf9" stroke="${LINE}"/><path d="${polygon(SHAPE_PRESETS[n].clipPath, x + (cw - w) / 2, y + 22 + (92 - h) / 2, w, h)}" fill="url(#p${(i * 3 + 2) % 8})"/>${text(x + cw / 2, y + 134, n, { size: 15, weight: 700, anchor: "middle", family: MONO })}${aspectIcons(x + cw / 2, y + 150, SHAPE_PRESETS[n].aspects ?? ["square", "tall", "wide"])}`;
+  });
+  body += text(W / 2, H - 22, "shapes: { add: { hexagon: SHAPE_PRESETS.hexagon } }", { size: 14, weight: 600, anchor: "middle", family: MONO, fill: ACCENT });
+  write("clip-shapes.svg", svg(W, H, "Built-in clip-path presets: hexagon, diamond, octagon, arrow, bevel", body));
 }
 
 /* ═════════════ 5. config layering ═════════════ */

@@ -12,6 +12,8 @@ describe("css helpers", () => {
       "--gd": t.desktop.area,
       "--brm": t.mobile.radius,
       "--brd": t.desktop.radius,
+      "--cpm": "none",
+      "--cpd": "none",
     });
   });
 

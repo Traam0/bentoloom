@@ -1,6 +1,6 @@
 {
   "name": "bentoloom",
-  "version": "1.0.0-rc",
+  "version": "1.0.0",
   "description": "Deterministic, seeded bento/mosaic layout engine for image galleries: gapless grids, irregular shapes, decorative filler tiles.",
   "keywords": [
     "gallery",
