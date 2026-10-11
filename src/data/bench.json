@@ -1,0 +1,218 @@
+{
+  "meta": {
+    "bentoloom": "1.0.0",
+    "node": "v22.22.3",
+    "cpu": "AMD Ryzen 7 7435HS",
+    "cores": 16,
+    "platform": "win32 x64",
+    "date": "2026-10-11"
+  },
+  "scaling": [
+    {
+      "n": 12,
+      "median": 0.662,
+      "p95": 3.109,
+      "min": 0.394,
+      "perImage": 0.0552
+    },
+    {
+      "n": 24,
+      "median": 0.888,
+      "p95": 1.18,
+      "min": 0.83,
+      "perImage": 0.037
+    },
+    {
+      "n": 48,
+      "median": 1.806,
+      "p95": 3.031,
+      "min": 1.671,
+      "perImage": 0.0376
+    },
+    {
+      "n": 120,
+      "median": 4.162,
+      "p95": 5.872,
+      "min": 3.646,
+      "perImage": 0.0347
+    },
+    {
+      "n": 240,
+      "median": 8.239,
+      "p95": 10.591,
+      "min": 7.432,
+      "perImage": 0.0343
+    },
+    {
+      "n": 480,
+      "median": 17.017,
+      "p95": 23.187,
+      "min": 15.719,
+      "perImage": 0.0355
+    },
+    {
+      "n": 1000,
+      "median": 37.665,
+      "p95": 46.772,
+      "min": 34.276,
+      "perImage": 0.0377
+    },
+    {
+      "n": 2000,
+      "median": 67.203,
+      "p95": 71.677,
+      "min": 64.784,
+      "perImage": 0.0336
+    },
+    {
+      "n": 5000,
+      "median": 164.005,
+      "p95": 173.116,
+      "min": 161.314,
+      "perImage": 0.0328
+    }
+  ],
+  "attempts": [
+    {
+      "attempts": 1,
+      "ms": 0.21,
+      "meanRatio": 1.833,
+      "p90Ratio": 3
+    },
+    {
+      "attempts": 5,
+      "ms": 0.55,
+      "meanRatio": 1.564,
+      "p90Ratio": 2.5
+    },
+    {
+      "attempts": 10,
+      "ms": 0.87,
+      "meanRatio": 1.494,
+      "p90Ratio": 2
+    },
+    {
+      "attempts": 20,
+      "ms": 1.57,
+      "meanRatio": 1.441,
+      "p90Ratio": 2
+    },
+    {
+      "attempts": 40,
+      "ms": 2.94,
+      "meanRatio": 1.404,
+      "p90Ratio": 2
+    },
+    {
+      "attempts": 80,
+      "ms": 5.71,
+      "meanRatio": 1.377,
+      "p90Ratio": 2
+    }
+  ],
+  "reliability": {
+    "layouts": 2000,
+    "tiles": 68653,
+    "gapViolations": 0,
+    "nonDeterministic": 0,
+    "fallbackDesktop": 45,
+    "fallbackMobile": 23
+  },
+  "distribution": {
+    "layouts": 300,
+    "tiles": 15600,
+    "distinctSizes": 36,
+    "shapes": {
+      "petalA": 14.7,
+      "cornTL": 14.7,
+      "cornBR": 14.5,
+      "petalB": 14.5,
+      "pill": 10.3,
+      "soft": 10.2,
+      "cornTR": 5.8,
+      "tab": 5.4,
+      "arch": 5.2,
+      "circle": 4.8
+    },
+    "areaShare": {
+      "small": 10.9,
+      "medium": 77,
+      "large": 12
+    },
+    "adjacentRepeatPct": 0,
+    "fillerPct": 7.7
+  },
+  "crop": [
+    {
+      "layout": "bentoloom",
+      "meanPct": 33.5,
+      "p90Pct": 61
+    },
+    {
+      "layout": "square",
+      "meanPct": 28.8,
+      "p90Pct": 33.3
+    },
+    {
+      "layout": "4:3",
+      "meanPct": 20.6,
+      "p90Pct": 50
+    },
+    {
+      "layout": "3:2",
+      "meanPct": 18.9,
+      "p90Pct": 55.6
+    }
+  ],
+  "caseStudy": {
+    "items": 40,
+    "salt": "case-study",
+    "chunks": 4,
+    "tiles": 44,
+    "fillers": 4,
+    "rowsDesktop": [
+      16,
+      17,
+      14,
+      6
+    ],
+    "rowsMobile": [
+      28,
+      30,
+      24,
+      10
+    ],
+    "ms": 1.195,
+    "jsonBytes": 13983,
+    "gzipBytes": 1687,
+    "distinctSizes": 18,
+    "distinctShapes": 10,
+    "heightDesktop": 4913,
+    "heightMobile": 8498,
+    "heightUniformDesktop": 2774,
+    "fingerprint": "95c6031c",
+    "tuning": [
+      {
+        "cellsPerWeight": 6,
+        "heightDesktop": 2960,
+        "usedFallback": false
+      },
+      {
+        "cellsPerWeight": 8,
+        "heightDesktop": 3983,
+        "usedFallback": false
+      },
+      {
+        "cellsPerWeight": 10,
+        "heightDesktop": 4913,
+        "usedFallback": false
+      },
+      {
+        "cellsPerWeight": 14,
+        "heightDesktop": 6773,
+        "usedFallback": false
+      }
+    ]
+  },
+  "bundle": null
+}

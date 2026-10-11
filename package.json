@@ -48,7 +48,9 @@
     "typecheck": "tsc --noEmit",
     "check:package": "publint && attw --pack . --ignore-rules cjs-resolves-to-esm",
     "prepublishOnly": "npm run typecheck && npm run coverage && npm run build && npm run check:package",
-    "docs:assets": "tsup && node scripts/make-assets.mjs"
+    "docs:assets": "tsup && node scripts/make-assets.mjs",
+    "bench": "node scripts/bench.mjs"
+
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
